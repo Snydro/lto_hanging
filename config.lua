@@ -6,7 +6,7 @@ Config.Text = "You have been Hanged and will ~e~Die~q~ Soon !"
 
 -- where you want the hand spot for prisonner
 Config.Hang = {
-    vector4(2688.8, -1114.01, 52.87, 177.96), -- Saint Denis
+    vector4(-314.14, 728.75, 120.61, 97.07), -- Valentine
 }
 
 Config.Jobs = { -- Jobs able to hang players.

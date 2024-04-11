@@ -12,7 +12,7 @@ RegisterCommand('hang', function(source, args, rawCommand)
                 TriggerServerEvent('lto_pendu:jobcheck', target_id)
                 ishanging = true
             else
-                VORPcore.NotifyRightTip("Too far away!",4000)
+                VORPcore.NotifyRightTip(Config.TooFar ,4000)
                 ishanging = false
             end
 	    end
@@ -28,7 +28,7 @@ RegisterNetEvent("lto_pendu:sethang", function()
             SetEntityHeading(ped, v.h)
             FreezeEntityPosition(ped, true)
 			SetEnableHandcuffs(ped, true)
-			PlayAnimationHang(ped, "script_re@public_hanging@criminal_male", "death_a")
+			PlayAnimationM(ped, "script_re@public_hanging@criminal_male", "death_a")
 
             PlayerHang = true
             Wait(1000)

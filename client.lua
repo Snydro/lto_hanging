@@ -1,62 +1,60 @@
-local PenduActif = false
-local TextePendu = false
+local VORPcore = exports.vorp_core:GetCore()
 local ishanging = false
-local VORPcore = {}
-
-TriggerEvent("getCore", function(core)
-    VORPcore = core
-end)
+local PlayerHang = false
 
 RegisterCommand('hang', function(source, args, rawCommand)
-    local playerPed = PlayerPedId()
-    local pos = GetEntityCoords(playerPed)
-    for k,v in pairs(Config.Hang) do 
-        if Vdist(pos, v.x, v.y, v.z) < 4.5 then
+    local playerpos = GetEntityCoords(PlayerPedId())
+    for k,v in pairs(Config.Hang) do
+        local distance = GetDistanceBetweenCoords(playerpos, v, true)
+        if distance <= 8 then
             if ishanging == false then
 	            local target_id = args[1]
-                TriggerServerEvent("lto_pendu:sherif", target_id)
+                TriggerServerEvent('lto_pendu:jobcheck', target_id)
                 ishanging = true
             else
-                VORPcore.NotifyBottomRight(Config.TooFar,4000)
+                VORPcore.NotifyRightTip("Too far away!",4000)
                 ishanging = false
             end
 	    end
     end
 end)
 
-RegisterNetEvent("lto_pendu:go")
-AddEventHandler("lto_pendu:go", function(target_id)
-    TriggerServerEvent("lto_pendu:pendre", target_id)
-end)
-
-RegisterNetEvent("lto_pendu:joueur")
-AddEventHandler("lto_pendu:joueur", function()
+RegisterNetEvent("lto_pendu:sethang", function()
     local ped = PlayerPedId()
-    local coords = GetEntityCoords(PlayerPedId())
 
-    for k, v in pairs(Config.Hang) do
-        if not PenduActif then
-            SetEntityCoords(ped, coords.x,coords.y,coords.z+0.2)
+    for k,v in pairs(Config.Hang) do
+        if not PlayerHang then
+            SetEntityCoords(ped, v.x,v.y,v.z-0.35)
             SetEntityHeading(ped, v.h)
             FreezeEntityPosition(ped, true)
 			SetEnableHandcuffs(ped, true)
-			PlayAnimationM(ped, "script_re@public_hanging@criminal_male", "death_a")
+			PlayAnimationHang(ped, "script_re@public_hanging@criminal_male", "death_a")
 
-            PenduActif = true
-            Citizen.Wait(1000)
+            PlayerHang = true
+            Wait(1000)
+            TriggerEvent('lto_pendu:killhang')
         end
     end
 end)
 
-RegisterNetEvent("lto_pendu:AnimLevier")
-AddEventHandler("lto_pendu:AnimLevier", function()
+RegisterNetEvent("lto_pendu:AnimLevier", function()
     local ped = PlayerPedId()
-	PlayAnimationL(ped, "mech_doors@locked@1handed", "knob_r_kick_fail")
+	PlayAnimationL(ped, "script_re@public_hanging@lever", "pull_lever_deputy_v2")
 end)
 
-Citizen.CreateThread(function()
+RegisterNetEvent("lto_pendu:killhang", function(target_id)
+    local ped = PlayerPedId()
+    DoScreenFadeOut(Config.Wait.HangedScreenFade * 1000)
+    Wait(Config.Wait.TimeToHang * 1000) -- Time before dead
+    ApplyDamageToPed(ped, 500000, false, true, true)
+    DoScreenFadeIn(3000)
+    PlayerHang = false
+    FreezeEntityPosition(ped, false)
+end)
+
+CreateThread(function()
 	while true do
-		Citizen.Wait(0)
+		Wait(0)
 		local ped = PlayerPedId()
 
 		if isHandcuffed or isHandcuffed2 or isHandcuffed3 then
@@ -76,55 +74,19 @@ Citizen.CreateThread(function()
             DisableControlAction(0, 0xE30CD707, true) -- R
 		    DisablePlayerFiring(ped, true)
 			SetCurrentPedWeapon(ped, GetHashKey('WEAPON_UNARMED'), true) -- unarm player
-			SetPedCanPlayGestureAnims(ped, false)
-			DisplayRadar(false)
 			
 		else
-			Citizen.Wait(500)
+			Wait(500)
 		end
 	end
 end)
 
-Citizen.CreateThread(function()
+CreateThread(function ()
     while true do
-        if PenduActif then
-            local ped = PlayerPedId()
-            local local_player = PlayerId()
-            local player_coords = GetEntityCoords(ped, true)
-
-            if not GetPlayerInvincible(local_player) then
-            SetPlayerInvincible(local_player, true)
-            end
-
-            local player_server_id = GetPlayerServerId(PlayerId())
-            TriggerServerEvent("lto_pendu:tuer", player_server_id)
-            Citizen.Wait(1000)
-        end
-        Citizen.Wait(0)
-    end
-end)
-
-RegisterNetEvent("lto_pendu:gotuer")
-AddEventHandler("lto_pendu:gotuer", function(target_id)
-    local local_ped = PlayerPedId()
-    local local_player = PlayerId()
-	
-	DoScreenFadeOut(11000)
-	Citizen.Wait(12000) -- temps avant la mort
-	DoScreenFadeIn(1000)
-    PenduActif = false
-    FreezeEntityPosition(local_ped, false)
-	SetPlayerInvincible(local_player, false)
-
-    ApplyDamageToPed(local_ped, 500000, false, true, true)
-end)
-
-Citizen.CreateThread(function ()
-    while true do
-        if PenduActif then
+        if PlayerHang then
             DrawTxt(Config.Text, 0.3, 0.85, 0.5, 0.5, true, 255, 255, 255, 150, false)
         end
-        Citizen.Wait(0)
+        Wait(0)
     end
 end)
 
